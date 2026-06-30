@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cancha Belmira — Reservas</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --tierra: #b5651d;
+    --tierra-oscuro: #8a4a14;
+    --tierra-claro: #e8c9a3;
+    --cancha-linea: #f4ede1;
+    --verde: #4a6b3d;
+    --verde-oscuro: #34492c;
+    --carbon: #2b2420;
+    --crema: #faf6ef;
+    --rojo-alerta: #b3402f;
+    --gris: #8a8076;
+    --radius: 14px;
+    --sombra: 0 2px 8px rgba(43, 36, 32, 0.12);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--crema);
+    color: var(--carbon);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    max-width: 560px;
+    margin: 0 auto;
+    padding-bottom: 48px;
+  }
+
+  /* ---------- HEADER ---------- */
+  .hero {
+    background: linear-gradient(160deg, var(--tierra) 0%, var(--tierra-oscuro) 100%);
+    color: var(--crema);
+    padding: 36px 20px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 38px,
+      rgba(244,237,225,0.06) 38px,
+      rgba(244,237,225,0.06) 40px
+    );
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    opacity: 0.85;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .hero h1 {
+    font-size: 26px;
+    line-height: 1.25;
+    margin: 0 0 14px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .hero p {
+    font-size: 15.5px;
+    line-height: 1.5;
+    margin: 0;
+    opacity: 0.96;
+    max-width: 46ch;
+  }
+
+  .hero p strong {
+    border-bottom: 2px solid var(--cancha-linea);
+  }
+
+  /* ---------- SECTION GENERIC ---------- */
+  section {
+    padding: 24px 20px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--tierra-oscuro);
+    margin: 0 0 14px;
+  }
+
+  /* ---------- REGLAS ---------- */
+  .reglas {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--sombra);
+    overflow: hidden;
+    border: 1px solid #ece4d6;
+  }
+
+  .regla {
+    display: flex;
+    gap: 14px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #f0e9dd;
+    align-items: flex-start;
+  }
+
+  .regla:last-child { border-bottom: none; }
+
+  .regla-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--verde);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .regla-texto {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .regla-texto b { color: var(--tierra-oscuro); }
+
+  /* ---------- CTA BOTON GRANDE ---------- */
+  .cta-wrap {
+    padding: 8px 20px 28px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--verde);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(74, 107, 61, 0.35);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(74, 107, 61, 0.3);
+  }
+
+  /* ---------- RESERVAS (oculto hasta dar click) ---------- */
+  #reservas-area { display: none; }
+  #reservas-area.visible { display: block; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+    background: white;
+    border: 1.5px solid #ece4d6;
+    font-weight: 600;
+    font-size: 14.5px;
+    cursor: pointer;
+    color: var(--gris);
+  }
+
+  .tab.active {
+    background: var(--verde);
+    color: white;
+    border-color: var(--verde);
+  }
+
+  .slots-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .ahora-siguiente-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .ahora-card {
+    background: white;
+    border-radius: 12px;
+    padding: 14px;
+    border: 1.5px solid #ece4d6;
+  }
+
+  .ahora-card.siguiente {
+    background: #f7f3ea;
+  }
+
+  .ahora-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--gris);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .ahora-valor {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--carbon);
+    line-height: 1.3;
+  }
+
+  .slot {
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    border: 1.5px solid #ece4d6;
+    background: white;
+    cursor: pointer;
+    transition: transform 0.08s ease;
+  }
+
+  .slot:active { transform: scale(0.97); }
+
+  .slot-hora {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--carbon);
+  }
+
+  .slot-libre {
+    color: var(--verde);
+  }
+
+  .slot.ocupado {
+    background: #f3eee4;
+    cursor: default;
+    border-color: #e9e0d0;
+  }
+
+  .slot.ocupado .slot-hora { color: var(--gris); }
+
+  .slot-nombre {
+    font-size: 11.5px;
+    color: var(--gris);
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .slot.pasado {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .loading-text, .empty-text {
+    text-align: center;
+    color: var(--gris);
+    font-size: 14px;
+    padding: 20px 0;
+  }
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(43, 36, 32, 0.55);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-overlay.visible {
+    display: flex;
+  }
+
+  .modal {
+    background: var(--crema);
+    width: 100%;
+    max-width: 560px;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 28px;
+    animation: slideUp 0.22s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal h3 {
+    margin: 0 0 4px;
+    font-size: 19px;
+  }
+
+  .modal .modal-sub {
+    color: var(--gris);
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--carbon);
+  }
+
+  .field input, .field textarea {
+    width: 100%;
+    padding: 13px 14px;
+    border-radius: 10px;
+    border: 1.5px solid #ddd3c2;
+    font-size: 16px;
+    background: white;
+    font-family: inherit;
+  }
+
+  .field input:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--verde);
+  }
+
+  .warning-box {
+    background: #fdf3e7;
+    border: 1px solid #f0dcb8;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--tierra-oscuro);
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+
+  .modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .btn-secondary {
+    flex: 1;
+    background: transparent;
+    color: var(--gris);
+    border: 1.5px solid #ddd3c2;
+    border-radius: 10px;
+    padding: 14px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .btn-confirm {
+    flex: 2;
+    background: var(--verde);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .btn-confirm:disabled {
+    background: #c9c2b4;
+    cursor: not-allowed;
+  }
+
+  .error-msg {
+    color: var(--rojo-alerta);
+    font-size: 13px;
+    margin-top: -6px;
+    margin-bottom: 10px;
+    display: none;
+  }
+
+  .success-msg {
+    text-align: center;
+    padding: 10px 0 4px;
+  }
+
+  .success-msg .check {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+
+  /* ---------- SUGERENCIAS ---------- */
+  .sugerencias-box {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--sombra);
+    padding: 18px;
+    border: 1px solid #ece4d6;
+  }
+
+  .sugerencias-box textarea {
+    width: 100%;
+    min-height: 80px;
+    border: 1.5px solid #ddd3c2;
+    border-radius: 10px;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    resize: vertical;
+    margin-bottom: 10px;
+  }
+
+  .sugerencias-box textarea:focus {
+    outline: none;
+    border-color: var(--verde);
+  }
+
+  .btn-sugerir {
+    width: 100%;
+    background: var(--carbon);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-weight: 600;
+    font-size: 14.5px;
+    cursor: pointer;
+  }
+
+  .btn-sugerir:disabled {
+    background: #c9c2b4;
+  }
+
+  .sugerencia-ok {
+    text-align: center;
+    color: var(--verde);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 0;
+    display: none;
+  }
+
+  /* ---------- DONACIONES ---------- */
+  .donaciones {
+    text-align: center;
+    padding: 18px 20px 6px;
+  }
+
+  .donaciones p {
+    font-size: 13px;
+    color: var(--gris);
+    line-height: 1.5;
+    margin: 0 0 10px;
+  }
+
+  .donaciones a {
+    color: var(--tierra-oscuro);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1.5px solid var(--tierra-claro);
+  }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--gris);
+    padding: 18px 20px 0;
+  }
+</style>
+</head>
+<body>
+
+  <!-- HERO / CULTURA -->
+  <div class="hero">
+    <div class="hero-eyebrow">Cancha Belmira · Reservas</div>
+    <h1>Esta cancha es pública, de todos.</h1>
+    <p>Funciona si cada quien respeta el turno del otro. <strong>Tanto nos quejamos de que en Colombia falta cultura ciudadana</strong> — empecemos por aquí.</p>
+  </div>
+
+  <!-- REGLAS -->
+  <section>
+    <p class="section-title">Antes de reservar, lee esto</p>
+    <div class="reglas">
+      <div class="regla">
+        <div class="regla-num">1</div>
+        <div class="regla-texto"><b>1 hora por turno.</b> No reserves más de una hora seguida.</div>
+      </div>
+      <div class="regla">
+        <div class="regla-num">2</div>
+        <div class="regla-texto"><b>Llega a tiempo.</b> Si pasan 10 minutos del inicio y no estás, cualquiera puede tomar tu turno.</div>
+      </div>
+      <div class="regla">
+        <div class="regla-num">3</div>
+        <div class="regla-texto"><b>Rota, no acapares.</b> No reserves a nombre de tus amigos para quedarse con la cancha varias horas seguidas. La idea es que todos puedan jugar.</div>
+      </div>
+      <div class="regla">
+        <div class="regla-num">4</div>
+        <div class="regla-texto"><b>Sin luz después de 7pm.</b> Las luces están dañadas — ten esto en cuenta antes de reservar al final del día.</div>
+      </div>
+      <div class="regla">
+        <div class="regla-num">5</div>
+        <div class="regla-texto"><b>¿Quieres ayudar?</b> Las donaciones son voluntarias, para arreglar las luces y mejorar este sistema. Nunca obligatorias.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-wrap">
+    <button class="btn-primary" id="btn-mostrar-reservas">Ver horarios y reservar →</button>
+  </div>
+
+  <!-- AREA DE RESERVAS -->
+  <div id="reservas-area">
+    <section style="padding-top:0;">
+      <p class="section-title">Elige el día</p>
+      <div class="tabs">
+        <div class="tab active" id="tab-hoy" data-dia="hoy">Hoy</div>
+        <div class="tab" id="tab-manana" data-dia="manana">Mañana</div>
+      </div>
+
+      <div id="ahora-siguiente-wrap" style="display:none; margin-bottom:18px;">
+        <div class="ahora-siguiente-grid">
+          <div class="ahora-card">
+            <div class="ahora-label">🟢 Jugando ahora</div>
+            <div class="ahora-valor" id="valor-ahora">—</div>
+          </div>
+          <div class="ahora-card siguiente">
+            <div class="ahora-label">⏭️ Siguiente turno</div>
+            <div class="ahora-valor" id="valor-siguiente">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="slots-container">
+        <div class="loading-text">Cargando horarios...</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SUGERENCIAS -->
+  <section>
+    <p class="section-title">Buzón de sugerencias (anónimo)</p>
+    <div class="sugerencias-box">
+      <textarea id="sugerencia-input" placeholder="¿Algo que mejorar? Cuéntanos, sin nombre ni nada — totalmente anónimo."></textarea>
+      <button class="btn-sugerir" id="btn-sugerir">Enviar sugerencia</button>
+      <div class="sugerencia-ok" id="sugerencia-ok">¡Gracias! Tu sugerencia fue enviada.</div>
+    </div>
+  </section>
+
+  <!-- DONACIONES -->
+  <div class="donaciones">
+    <p>¿Quieres ayudar a arreglar las luces o mejorar este sistema?<br>Aporta lo que quieras, nunca es obligatorio.</p>
+    <a href="#" id="link-donaciones">Hacer una donación voluntaria</a>
+  </div>
+
+  <footer>
+    <p style="margin:0 0 6px;">¿Algún problema con la cancha o la reserva? <a href="#" style="color:var(--tierra-oscuro); font-weight:600;">Escríbeme por WhatsApp</a></p>
+    Hecho por la comunidad, para la comunidad 🎾
+  </footer>
+
+  <!-- MODAL DE RESERVA -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div id="modal-form-content">
+        <h3 id="modal-titulo">Reservar turno</h3>
+        <div class="modal-sub" id="modal-subtitulo"></div>
+
+        <div class="warning-box">
+          Recuerda: máximo 1 hora seguida y llega a tiempo. Si no llegas en 10 minutos, cualquiera puede tomar tu turno.
+        </div>
+
+        <div class="field">
+          <label>Nombre completo</label>
+          <input type="text" id="input-nombre" placeholder="Ej: Juan Pérez">
+        </div>
+        <div class="field">
+          <label>Cédula</label>
+          <input type="text" inputmode="numeric" id="input-cedula" placeholder="Ej: 1020304050">
+        </div>
+        <div class="error-msg" id="modal-error"></div>
+
+        <div class="modal-buttons">
+          <button class="btn-secondary" id="btn-cancelar">Cancelar</button>
+          <button class="btn-confirm" id="btn-confirmar">Confirmar</button>
+        </div>
+      </div>
+
+      <div id="modal-success-content" style="display:none;">
+        <div class="success-msg">
+          <div class="check">✅</div>
+          <h3>¡Turno reservado!</h3>
+          <p style="color:var(--gris); font-size:14px;">Llega a tiempo. Si pasan 10 minutos, alguien más puede tomar tu lugar.</p>
+        </div>
+        <div class="modal-buttons" style="margin-top:14px;">
+          <button class="btn-confirm" style="flex:1;" id="btn-cerrar-success">Listo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ---------- CONFIG SUPABASE ----------
+  const SUPABASE_URL = "https://pemvoaihzwqqlgezcztj.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlbXZvYWloendxcWxnZXpjenRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NzQ2MzYsImV4cCI6MjA5ODM1MDYzNn0.QBpjxkVZT7SFG10iotCxqfk2P4HJdqVZ2hzqkyoWjTY";
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------- ESTADO ----------
+  const HORA_INICIO = 6;   // 6am
+  const HORA_FIN = 19;     // ultimo slot empieza a las 7pm (sin luz despues)
+  let diaActual = "hoy";
+  let slotSeleccionado = null; // {fecha, hora}
+  let reservasCache = { hoy: [], manana: [] };
+
+  function fechaISO(offsetDias) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDias);
+    return d.toISOString().split("T")[0];
+  }
+
+  function formatHora12(h) {
+    const periodo = h < 12 ? "a.m." : "p.m.";
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return `${h12}:00 ${periodo}`;
+  }
+
+  function generarSlots() {
+    const slots = [];
+    for (let h = HORA_INICIO; h <= HORA_FIN; h++) {
+      slots.push(h);
+    }
+    return slots;
+  }
+
+  // ---------- CARGA DE RESERVAS ----------
+  async function cargarReservas() {
+    const hoyISO = fechaISO(0);
+    const mananaISO = fechaISO(1);
+
+    const { data, error } = await sb
+      .from("reservas")
+      .select("nombre, fecha, hora_inicio")
+      .in("fecha", [hoyISO, mananaISO]);
+
+    if (error) {
+      console.error(error);
+      document.getElementById("slots-container").innerHTML =
+        '<div class="empty-text">No pudimos cargar los horarios. Intenta de nuevo.</div>';
+      return;
+    }
+
+    reservasCache.hoy = data.filter(r => r.fecha === hoyISO);
+    reservasCache.manana = data.filter(r => r.fecha === mananaISO);
+    renderSlots();
+  }
+
+  function renderSlots() {
+    const cont = document.getElementById("slots-container");
+    const slots = generarSlots();
+    const reservasDelDia = reservasCache[diaActual];
+    const esHoy = diaActual === "hoy";
+    const horaActual = new Date().getHours();
+
+    actualizarAhoraSiguiente(esHoy, reservasDelDia, horaActual);
+
+    let html = '<div class="slots-grid">';
+    slots.forEach(h => {
+      const horaStr = String(h).padStart(2, "0") + ":00:00";
+      const reserva = reservasDelDia.find(r => r.hora_inicio.startsWith(String(h).padStart(2, "0")));
+      const yaPaso = esHoy && h < horaActual;
+
+      if (reserva) {
+        html += `
+          <div class="slot ocupado">
+            <div class="slot-hora">${formatHora12(h)}</div>
+            <div class="slot-nombre">${escapeHtml(reserva.nombre)}</div>
+          </div>`;
+      } else if (yaPaso) {
+        html += `
+          <div class="slot pasado">
+            <div class="slot-hora">${formatHora12(h)}</div>
+            <div class="slot-nombre">Ya pasó</div>
+          </div>`;
+      } else {
+        html += `
+          <div class="slot" data-hora="${h}">
+            <div class="slot-hora slot-libre">${formatHora12(h)}</div>
+            <div class="slot-nombre">Libre</div>
+          </div>`;
+      }
+    });
+    html += '</div>';
+    cont.innerHTML = html;
+
+    // listeners en slots libres
+    cont.querySelectorAll(".slot[data-hora]").forEach(el => {
+      el.addEventListener("click", () => abrirModal(parseInt(el.dataset.hora)));
+    });
+  }
+
+  function actualizarAhoraSiguiente(esHoy, reservasDelDia, horaActual) {
+    const wrap = document.getElementById("ahora-siguiente-wrap");
+
+    if (!esHoy) {
+      wrap.style.display = "none";
+      return;
+    }
+
+    wrap.style.display = "block";
+
+    const reservaActual = reservasDelDia.find(r => {
+      const h = parseInt(r.hora_inicio.split(":")[0]);
+      return h === horaActual;
+    });
+
+    const proximasReservas = reservasDelDia
+      .filter(r => parseInt(r.hora_inicio.split(":")[0]) > horaActual)
+      .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+    const valorAhora = document.getElementById("valor-ahora");
+    const valorSiguiente = document.getElementById("valor-siguiente");
+
+    if (reservaActual) {
+      valorAhora.textContent = `${escapeHtml(reservaActual.nombre)}`;
+    } else if (horaActual >= HORA_INICIO && horaActual <= HORA_FIN) {
+      valorAhora.textContent = "Cancha libre";
+    } else {
+      valorAhora.textContent = "Cancha cerrada";
+    }
+
+    if (proximasReservas.length > 0) {
+      const h = parseInt(proximasReservas[0].hora_inicio.split(":")[0]);
+      valorSiguiente.textContent = `${escapeHtml(proximasReservas[0].nombre)} · ${formatHora12(h)}`;
+    } else {
+      valorSiguiente.textContent = "Sin reservas aún";
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---------- TABS ----------
+  document.getElementById("tab-hoy").addEventListener("click", () => cambiarDia("hoy"));
+  document.getElementById("tab-manana").addEventListener("click", () => cambiarDia("manana"));
+
+  function cambiarDia(dia) {
+    diaActual = dia;
+    document.getElementById("tab-hoy").classList.toggle("active", dia === "hoy");
+    document.getElementById("tab-manana").classList.toggle("active", dia === "manana");
+    renderSlots();
+  }
+
+  // ---------- MOSTRAR AREA RESERVAS ----------
+  document.getElementById("btn-mostrar-reservas").addEventListener("click", () => {
+    const area = document.getElementById("reservas-area");
+    area.classList.add("visible");
+    area.scrollIntoView({ behavior: "smooth", block: "start" });
+    cargarReservas();
+  });
+
+  // ---------- MODAL ----------
+  function abrirModal(hora) {
+    slotSeleccionado = { fecha: fechaISO(diaActual === "hoy" ? 0 : 1), hora };
+    document.getElementById("modal-titulo").textContent = "Reservar turno";
+    document.getElementById("modal-subtitulo").textContent =
+      `${diaActual === "hoy" ? "Hoy" : "Mañana"} · ${formatHora12(hora)} - ${formatHora12(hora + 1)}`;
+    document.getElementById("input-nombre").value = "";
+    document.getElementById("input-cedula").value = "";
+    document.getElementById("modal-error").style.display = "none";
+    document.getElementById("modal-form-content").style.display = "block";
+    document.getElementById("modal-success-content").style.display = "none";
+    document.getElementById("modal-overlay").classList.add("visible");
+  }
+
+  function cerrarModal() {
+    document.getElementById("modal-overlay").classList.remove("visible");
+    slotSeleccionado = null;
+  }
+
+  document.getElementById("btn-cancelar").addEventListener("click", cerrarModal);
+  document.getElementById("modal-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "modal-overlay") cerrarModal();
+  });
+
+  document.getElementById("btn-cerrar-success").addEventListener("click", () => {
+    cerrarModal();
+    cargarReservas();
+  });
+
+  document.getElementById("btn-confirmar").addEventListener("click", async () => {
+    const nombre = document.getElementById("input-nombre").value.trim();
+    const cedula = document.getElementById("input-cedula").value.trim();
+    const errEl = document.getElementById("modal-error");
+
+    if (!nombre || nombre.length < 3) {
+      errEl.textContent = "Por favor escribe tu nombre completo.";
+      errEl.style.display = "block";
+      return;
+    }
+    if (!cedula || cedula.length < 5) {
+      errEl.textContent = "Por favor escribe un número de cédula válido.";
+      errEl.style.display = "block";
+      return;
+    }
+    errEl.style.display = "none";
+
+    const btn = document.getElementById("btn-confirmar");
+    btn.disabled = true;
+    btn.textContent = "Reservando...";
+
+    const horaStr = String(slotSeleccionado.hora).padStart(2, "0") + ":00:00";
+
+    const { error } = await sb.from("reservas").insert({
+      nombre,
+      cedula,
+      fecha: slotSeleccionado.fecha,
+      hora_inicio: horaStr
+    });
+
+    btn.disabled = false;
+    btn.textContent = "Confirmar";
+
+    if (error) {
+      if (error.code === "23505") {
+        errEl.textContent = "Ese horario se acaba de ocupar. Elige otro.";
+      } else {
+        errEl.textContent = "Algo salió mal. Intenta de nuevo.";
+      }
+      errEl.style.display = "block";
+      return;
+    }
+
+    document.getElementById("modal-form-content").style.display = "none";
+    document.getElementById("modal-success-content").style.display = "block";
+  });
+
+  // ---------- SUGERENCIAS ----------
+  document.getElementById("btn-sugerir").addEventListener("click", async () => {
+    const input = document.getElementById("sugerencia-input");
+    const mensaje = input.value.trim();
+    const btn = document.getElementById("btn-sugerir");
+    const ok = document.getElementById("sugerencia-ok");
+
+    if (!mensaje || mensaje.length < 3) {
+      input.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    const { error } = await sb.from("sugerencias").insert({ mensaje });
+
+    btn.disabled = false;
+    btn.textContent = "Enviar sugerencia";
+
+    if (!error) {
+      input.value = "";
+      ok.style.display = "block";
+      setTimeout(() => { ok.style.display = "none"; }, 3500);
+    }
+  });
+
+  // ---------- DONACIONES (placeholder, ajustar link real) ----------
+  document.getElementById("link-donaciones").addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Aquí pondremos el link de Nequi/Daviplata para donaciones voluntarias.");
+  });
+</script>
+
+</body>
+</html>
