@@ -528,7 +528,7 @@
       </div>
       <div class="regla">
         <div class="regla-num">5</div>
-        <div class="regla-texto"><b>¿Quieres ayudar?</b> Las donaciones son voluntarias, para arreglar las luces y mejorar este sistema. Nunca obligatorias.</div>
+        <div class="regla-texto"><b>¿Quieres ayudar?</b> Las donaciones son voluntarias. Nunca obligatorias.</div>
       </div>
     </div>
   </section>
@@ -551,11 +551,11 @@
         <div class="ahora-siguiente-grid">
           <div class="ahora-card">
             <div class="ahora-label">🟢 Jugando ahora</div>
-            <div class="ahora-valor" id="valor-ahora">—</div>
+            <div class="ahora-valor" id="valor-ahora"></div>
           </div>
           <div class="ahora-card siguiente">
             <div class="ahora-label">⏭️ Siguiente turno</div>
-            <div class="ahora-valor" id="valor-siguiente">—</div>
+            <div class="ahora-valor" id="valor-siguiente"></div>
           </div>
         </div>
       </div>
@@ -578,12 +578,12 @@
 
   <!-- DONACIONES -->
   <div class="donaciones">
-    <p>¿Quieres ayudar a arreglar las luces o mejorar este sistema?<br>Aporta lo que quieras, nunca es obligatorio.</p>
+    <p>Aporta lo que quieras, nunca es obligatorio.</p>
     <a href="#" id="link-donaciones">Hacer una donación voluntaria</a>
   </div>
 
   <footer>
-    <p style="margin:0 0 6px;">¿Algún problema con la cancha o la reserva? <a href="#" style="color:var(--tierra-oscuro); font-weight:600;">Escríbeme por WhatsApp</a></p>
+    <p style="margin:0 0 6px;">¿Algún problema con la cancha o la reserva? <a href="#" id="link-correo" style="color:var(--tierra-oscuro); font-weight:600;">Escríbeme un correo</a></p>
     Hecho por la comunidad, para la comunidad 🎾
   </footer>
 
@@ -603,8 +603,8 @@
           <input type="text" id="input-nombre" placeholder="Ej: Juan Pérez">
         </div>
         <div class="field">
-          <label>Cédula</label>
-          <input type="text" inputmode="numeric" id="input-cedula" placeholder="Ej: 1020304050">
+          <label>Celular</label>
+          <input type="text" inputmode="numeric" id="input-celular" placeholder="Ej: 3101234567">
         </div>
         <div class="error-msg" id="modal-error"></div>
 
@@ -797,7 +797,7 @@
     document.getElementById("modal-subtitulo").textContent =
       `${diaActual === "hoy" ? "Hoy" : "Mañana"} · ${formatHora12(hora)} - ${formatHora12(hora + 1)}`;
     document.getElementById("input-nombre").value = "";
-    document.getElementById("input-cedula").value = "";
+    document.getElementById("input-celular").value = "";
     document.getElementById("modal-error").style.display = "none";
     document.getElementById("modal-form-content").style.display = "block";
     document.getElementById("modal-success-content").style.display = "none";
@@ -821,7 +821,7 @@
 
   document.getElementById("btn-confirmar").addEventListener("click", async () => {
     const nombre = document.getElementById("input-nombre").value.trim();
-    const cedula = document.getElementById("input-cedula").value.trim();
+    const celular = document.getElementById("input-celular").value.trim();
     const errEl = document.getElementById("modal-error");
 
     if (!nombre || nombre.length < 3) {
@@ -829,8 +829,8 @@
       errEl.style.display = "block";
       return;
     }
-    if (!cedula || cedula.length < 5) {
-      errEl.textContent = "Por favor escribe un número de cédula válido.";
+    if (!celular || celular.length < 10) {
+      errEl.textContent = "Por favor escribe un número de celular válido (10 dígitos).";
       errEl.style.display = "block";
       return;
     }
@@ -844,7 +844,7 @@
 
     const { error } = await sb.from("reservas").insert({
       nombre,
-      cedula,
+      celular,
       fecha: slotSeleccionado.fecha,
       hora_inicio: horaStr
     });
@@ -893,10 +893,15 @@
     }
   });
 
-  // ---------- DONACIONES (placeholder, ajustar link real) ----------
+  document.getElementById("link-correo").addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("da.rinconr9@gmail.com");
+  });
+
+  // ---------- DONACIONES ----------
   document.getElementById("link-donaciones").addEventListener("click", (e) => {
     e.preventDefault();
-    alert("Aquí pondremos el link de Nequi/Daviplata para donaciones voluntarias.");
+    alert("Llave o nequi: 3197822696");
   });
 </script>
 
